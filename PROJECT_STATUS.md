@@ -10,7 +10,7 @@ InsightAI is an intermediate CSV Data Analysis and Reporting Web Application bui
 | Milestone | Description | Status | Verification |
 | :--- | :--- | :--- | :--- |
 | **Milestone 1** | Workspace inspection, project structure, Python venv, FastAPI health endpoint, React Vite setup | **Completed** | Pytest passed (2/2), Vite build passed |
-| **Milestone 2** | CSV upload handling, file validation, dataset preview, row/column counts, and inferred types | *Pending Confirmation* | Not started |
+| **Milestone 2** | CSV upload handling, file validation, dataset preview, row/column counts, and inferred types | **Completed** | Pytest 9/9 passed, Vite build passed |
 | **Milestone 3** | Data quality summary (missing values, duplicates, type issues) & Pandas descriptive statistics | *Queued* | Not started |
 | **Milestone 4** | Interactive dashboard with KPI cards, tables, and Recharts | *Queued* | Not started |
 | **Milestone 5** | Safe question engine (sum, average, median, min/max, top categories, group-by, correlation) | *Queued* | Not started |

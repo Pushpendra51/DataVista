@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.routes import router as api_router
+from app.api.routes import router as main_router
+from app.api.analytics import router as analytics_router
+from app.api.query import router as query_router
+from app.api.clean import router as clean_router
+from app.api.export import router as export_router
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -9,10 +14,9 @@ def create_app() -> FastAPI:
         version=settings.VERSION,
         description=settings.DESCRIPTION,
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
     )
 
-    # Configure CORS for local development and integration with Vite React
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -21,16 +25,21 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include API routes
-    app.include_router(api_router, prefix=settings.API_PREFIX)
+    # Each router is mounted under /api — separation of concerns per feature
+    app.include_router(main_router, prefix=settings.API_PREFIX)
+    app.include_router(analytics_router, prefix=settings.API_PREFIX)
+    app.include_router(query_router, prefix=settings.API_PREFIX)
+    app.include_router(clean_router, prefix=settings.API_PREFIX)
+    app.include_router(export_router, prefix=settings.API_PREFIX)
 
     @app.get("/", tags=["System"])
     def root():
         return {
             "message": "Welcome to InsightAI API. Visit /docs for Swagger documentation.",
-            "health_endpoint": f"{settings.API_PREFIX}/health"
+            "health_endpoint": f"{settings.API_PREFIX}/health",
         }
 
     return app
+
 
 app = create_app()

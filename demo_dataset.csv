@@ -1,0 +1,16 @@
+transaction_id,customer_name,region,product_category,unit_price,quantity,discount_pct,order_date,returned
+1001,Aarav Sharma,North,Electronics,1200.00,2,0.05,2026-01-15,No
+1002,Pooja Patel,West,Home Appliances,450.50,1,0.00,2026-01-16,No
+1003,Rohan Verma,South,Electronics,85.00,5,0.10,2026-01-17,Yes
+1004,Neha Gupta,East,Furniture,320.00,3,0.15,2026-01-18,No
+1005,Vikram Singh,North,Office Supplies,45.00,12,0.00,2026-01-19,No
+1006,Ananya Roy,East,Electronics,950.00,1,0.05,2026-01-20,No
+1007,Karan Mehta,West,Home Appliances,,2,0.00,2026-01-21,No
+1008,Sunita Rao,South,Furniture,640.00,2,0.20,2026-01-22,Yes
+1001,Aarav Sharma,North,Electronics,1200.00,2,0.05,2026-01-15,No
+1010,Deepak Joshi,North,Office Supplies,25.00,20,0.00,2026-01-23,No
+1011,Meera Nair,South,Electronics,310.00,4,0.10,2026-01-24,No
+1012,Arjun Reddy,West,Furniture,780.00,1,0.00,2026-01-25,Yes
+1013,Divya Pillai,East,Office Supplies,,6,0.05,2026-01-26,No
+1014,Raj Malhotra,North,Home Appliances,220.00,3,0.00,2026-01-27,No
+1015,Priya Chauhan,South,Electronics,1450.00,1,0.15,2026-01-28,No
