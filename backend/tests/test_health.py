@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from app.main import app
+from app.core.config import settings
 
 client = TestClient(app)
 
@@ -15,6 +16,6 @@ def test_health_endpoint_status_and_schema():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert data["service"] == "InsightAI API"
-    assert data["version"] == "0.1.0"
+    assert data["service"] == f"{settings.PROJECT_NAME} API"
+    assert data["version"] == settings.VERSION
     assert "timestamp" in data

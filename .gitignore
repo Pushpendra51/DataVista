@@ -25,6 +25,7 @@ yarn-error.log*
 # Temporary uploads / OS files
 uploads/
 temp/
+backend/temp_uploads/
 scratch/
 .DS_Store
 Thumbs.db
