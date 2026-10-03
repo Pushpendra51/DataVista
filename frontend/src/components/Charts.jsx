@@ -1,21 +1,24 @@
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, Legend,
+  ResponsiveContainer, Cell, Legend, PieChart, Pie,
+  LineChart, Line, ScatterChart, Scatter, ZAxis
 } from 'recharts'
 
-const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#a3e635']
+/* Midnight Aurora Harmonized Spectrum */
+const CHART_COLORS = ['#2dd4bf', '#818cf8', '#34d399', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24', '#f87171']
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '8px', padding: '0.6rem 1rem', fontSize: '0.825rem'
+        background: '#090e1a', border: '1px solid rgba(45, 212, 191, 0.25)',
+        borderRadius: '8px', padding: '0.65rem 1rem', fontSize: '0.825rem',
+        boxShadow: '0 12px 30px -4px rgba(0,0,0,0.7), 0 0 15px rgba(45,212,191,0.1)', zIndex: 100
       }}>
-        <p style={{ color: '#94a3b8', marginBottom: '0.25rem' }}>{label}</p>
+        {label && <p style={{ color: '#94a3b8', marginBottom: '0.25rem', fontWeight: 600 }}>{label}</p>}
         {payload.map((p, i) => (
-          <p key={i} style={{ color: p.color, fontWeight: 600 }}>
-            {p.name}: {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
+          <p key={i} style={{ color: p.color || '#2dd4bf', fontWeight: 600, margin: '2px 0' }}>
+            {p.name}: {typeof p.value === 'number' ? (Number.isInteger(p.value) ? p.value.toLocaleString() : p.value.toFixed(2)) : p.value}
           </p>
         ))}
       </div>
@@ -46,12 +49,12 @@ export function CategoryBarChart({ columnFreq }) {
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} />
-          <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} />
+          <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} />
+          <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
           <Tooltip content={<CustomTooltip />} />
           <Bar dataKey="Count" radius={[3, 3, 0, 0]}>
             {data.map((_, idx) => (
-              <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} fillOpacity={0.85} />
+              <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} fillOpacity={0.88} />
             ))}
           </Bar>
         </BarChart>
@@ -79,13 +82,13 @@ export function NumericStatsChart({ numericStats }) {
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-        <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} />
-        <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} />
+        <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} />
+        <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
         <Tooltip content={<CustomTooltip />} />
-        <Legend wrapperStyle={{ fontSize: '0.8rem', color: '#9ca3af' }} />
-        <Bar dataKey="Min" fill="#6b7280" fillOpacity={0.6} radius={[2, 2, 0, 0]} />
-        <Bar dataKey="Mean" fill="#3b82f6" fillOpacity={0.9} radius={[2, 2, 0, 0]} />
-        <Bar dataKey="Max" fill="#8b5cf6" fillOpacity={0.7} radius={[2, 2, 0, 0]} />
+        <Legend wrapperStyle={{ fontSize: '0.8rem', color: '#94a3b8' }} />
+        <Bar dataKey="Min" fill="#475569" fillOpacity={0.7} radius={[2, 2, 0, 0]} />
+        <Bar dataKey="Mean" fill="#2dd4bf" fillOpacity={0.92} radius={[2, 2, 0, 0]} />
+        <Bar dataKey="Max" fill="#818cf8" fillOpacity={0.8} radius={[2, 2, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -104,14 +107,14 @@ export function CorrelationHeatmap({ correlation }) {
   const { columns, matrix } = correlation
 
   const getColor = (val) => {
-    if (val === null) return '#1e293b'
+    if (val === null) return '#0d1322'
     const v = Math.max(-1, Math.min(1, val))
     if (v > 0) {
-      const g = Math.round(59 + (130 - 59) * v)
-      return `rgba(59, ${g}, 246, ${0.15 + Math.abs(v) * 0.7})`
+      // Ethereal Aurora Teal / Cyan gradient
+      return `rgba(45, 212, 191, ${0.15 + Math.abs(v) * 0.72})`
     } else {
-      const intensity = Math.abs(v)
-      return `rgba(239, 68, 68, ${0.15 + intensity * 0.7})`
+      // Aurora Coral Red gradient
+      return `rgba(248, 113, 113, ${0.15 + Math.abs(v) * 0.72})`
     }
   }
 
@@ -124,7 +127,7 @@ export function CorrelationHeatmap({ correlation }) {
         <div style={{ display: 'flex', marginLeft: `${cellSize + 8}px` }}>
           {columns.map(col => (
             <div key={col} style={{
-              width: cellSize, fontSize: '0.7rem', color: '#9ca3af',
+              width: cellSize, fontSize: '0.7rem', color: '#94a3b8',
               textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis',
               whiteSpace: 'nowrap', padding: '0 2px 4px',
             }}>
@@ -136,7 +139,7 @@ export function CorrelationHeatmap({ correlation }) {
         {matrix.map((row, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: 3 }}>
             <div style={{
-              width: cellSize + 8, fontSize: '0.7rem', color: '#9ca3af',
+              width: cellSize + 8, fontSize: '0.7rem', color: '#94a3b8',
               textAlign: 'right', paddingRight: 8, whiteSpace: 'nowrap',
               overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
@@ -150,7 +153,7 @@ export function CorrelationHeatmap({ correlation }) {
                 borderRadius: 4,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.7rem', fontWeight: 600,
-                color: val !== null && Math.abs(val) > 0.3 ? '#fff' : '#9ca3af',
+                color: val !== null && Math.abs(val) > 0.3 ? '#fff' : '#94a3b8',
                 marginRight: 3,
               }}>
                 {val !== null ? val.toFixed(2) : 'N/A'}
@@ -159,14 +162,77 @@ export function CorrelationHeatmap({ correlation }) {
           </div>
         ))}
         {/* Legend */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', fontSize: '0.75rem', color: '#6b7280' }}>
-          <div style={{ width: 14, height: 14, background: 'rgba(239,68,68,0.8)', borderRadius: 3 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+          <div style={{ width: 14, height: 14, background: 'rgba(248,113,113,0.85)', borderRadius: 3 }} />
           <span>−1 (neg)</span>
-          <div style={{ flex: 1, height: 6, background: 'linear-gradient(90deg, rgba(239,68,68,0.7), #1e293b, rgba(59,130,246,0.8))', borderRadius: 9999 }} />
+          <div style={{ flex: 1, height: 6, background: 'linear-gradient(90deg, rgba(248,113,113,0.7), #0d1322, rgba(45,212,191,0.8))', borderRadius: 9999 }} />
           <span>+1 (pos)</span>
-          <div style={{ width: 14, height: 14, background: 'rgba(59,130,246,0.8)', borderRadius: 3 }} />
+          <div style={{ width: 14, height: 14, background: 'rgba(45,212,191,0.85)', borderRadius: 3 }} />
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── Power BI Style Donut Chart ───────────────────────────────────────────────
+export function BIDonutChart({ data, valueKey = 'value', nameKey = 'name', height = 220 }) {
+  if (!data || data.length === 0) return <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No data to render</p>
+
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          innerRadius={48}
+          outerRadius={75}
+          paddingAngle={3}
+          dataKey={valueKey}
+          nameKey={nameKey}
+        >
+          {data.map((_, idx) => (
+            <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip content={<CustomTooltip />} />
+        <Legend wrapperStyle={{ fontSize: '0.75rem', color: '#94a3b8' }} layout="horizontal" align="center" verticalAlign="bottom" />
+      </PieChart>
+    </ResponsiveContainer>
+  )
+}
+
+// ─── Power BI Style Line Chart ────────────────────────────────────────────────
+export function BILineChart({ data, xKey = 'name', yKey = 'value', color = '#2dd4bf', height = 220 }) {
+  if (!data || data.length === 0) return <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No data to render</p>
+
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart data={data} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <XAxis dataKey={xKey} tick={{ fill: '#64748b', fontSize: 11 }} />
+        <YAxis tick={{ fill: '#64748b', fontSize: 11 }} />
+        <Tooltip content={<CustomTooltip />} />
+        <Line type="monotone" dataKey={yKey} stroke={color} strokeWidth={2.5} dot={{ r: 3, fill: color }} activeDot={{ r: 6 }} />
+      </LineChart>
+    </ResponsiveContainer>
+  )
+}
+
+// ─── Power BI Style Scatter Correlation Plot ─────────────────────────────────
+export function BIScatterChart({ data, xKey, yKey, xLabel, yLabel, height = 240 }) {
+  if (!data || data.length === 0) return <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No data to render</p>
+
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <ScatterChart margin={{ top: 10, right: 15, left: -10, bottom: 10 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <XAxis dataKey="x" name={xLabel || xKey} tick={{ fill: '#64748b', fontSize: 11 }} />
+        <YAxis dataKey="y" name={yLabel || yKey} tick={{ fill: '#64748b', fontSize: 11 }} />
+        <ZAxis dataKey="label" name="Item" />
+        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+        <Scatter name="Points" data={data} fill="#818cf8" fillOpacity={0.8} />
+      </ScatterChart>
+    </ResponsiveContainer>
   )
 }

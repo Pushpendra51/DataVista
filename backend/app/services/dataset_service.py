@@ -25,62 +25,83 @@ def get_dataset_path(dataset_id: str) -> Path:
     filepath = settings.UPLOAD_DIR / f"{dataset_id}.csv"
     return filepath
 
-def validate_csv_upload(filename: str, file_size: int, content: bytes) -> None:
+def validate_dataset_upload(filename: str, file_size: int, content: bytes) -> None:
     """Validate file extension, size, and non-empty content before processing."""
     if not filename:
         raise ValueError("Filename cannot be empty.")
-    
+
     extension = Path(filename).suffix.lower()
     if extension not in settings.ALLOWED_EXTENSIONS:
+        allowed_list = sorted(list(settings.ALLOWED_EXTENSIONS))
         raise ValueError(
-            f"Invalid file extension '{extension}'. Only CSV files (.csv) are supported."
+            f"Invalid file extension '{extension}'. Supported file formats: {', '.join(allowed_list)}"
         )
-        
+
     if file_size == 0 or len(content) == 0:
-        raise ValueError("The uploaded CSV file is empty (0 bytes).")
-        
+        raise ValueError("The uploaded file is empty (0 bytes).")
+
     if file_size > settings.MAX_UPLOAD_SIZE_BYTES or len(content) > settings.MAX_UPLOAD_SIZE_BYTES:
         max_mb = settings.MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)
         raise ValueError(f"File size exceeds the maximum limit of {max_mb} MB.")
 
-def read_csv_to_dataframe(content: bytes) -> pd.DataFrame:
-    """
-    Safely parse CSV bytes into a Pandas DataFrame.
-    Tries utf-8 first, then falls back to common encodings.
-    Raises descriptive errors for malformed or empty datasets.
-    """
-    encodings = ["utf-8", "utf-8-sig", "latin1", "cp1252"]
-    last_error = None
-    df = None
-    
-    for encoding in encodings:
-        try:
-            buffer = io.BytesIO(content)
-            df = pd.read_csv(buffer, encoding=encoding)
-            break
-        except UnicodeDecodeError as e:
-            last_error = e
-            continue
-        except pd.errors.EmptyDataError:
-            raise ValueError("The uploaded CSV file contains no data or headers.")
-        except pd.errors.ParserError as e:
-            raise ValueError(f"Malformed CSV: Failed to parse rows. Details: {str(e)}")
-        except Exception as e:
-            last_error = e
-            break
+def validate_csv_upload(filename: str, file_size: int, content: bytes) -> None:
+    """Alias for backwards compatibility."""
+    validate_dataset_upload(filename, file_size, content)
 
-    if df is None:
-        if isinstance(last_error, UnicodeDecodeError):
-            raise ValueError("Unable to decode CSV file. Please ensure it is saved in UTF-8 or standard Latin encoding.")
-        raise ValueError(f"Failed to parse CSV file: {str(last_error)}")
+def read_dataset_to_dataframe(filename: str, content: bytes) -> pd.DataFrame:
+    """
+    Safely parse CSV or Excel bytes into a Pandas DataFrame.
+    Supports .csv, .xlsx, and .xls files.
+    """
+    extension = Path(filename).suffix.lower()
+    buffer = io.BytesIO(content)
+
+    if extension in [".xlsx", ".xls"]:
+        try:
+            engine = "openpyxl" if extension == ".xlsx" else None
+            df = pd.read_excel(buffer, engine=engine)
+        except Exception as e:
+            raise ValueError(f"Failed to parse Excel file: {str(e)}")
+
+        if df is None or (df.empty and df.shape[1] == 0):
+            raise ValueError("The uploaded Excel file contains no data or headers.")
+    else:
+        encodings = ["utf-8", "utf-8-sig", "latin1", "cp1252"]
+        last_error = None
+        df = None
+
+        for encoding in encodings:
+            try:
+                buffer.seek(0)
+                df = pd.read_csv(buffer, encoding=encoding)
+                break
+            except UnicodeDecodeError as e:
+                last_error = e
+                continue
+            except pd.errors.EmptyDataError:
+                raise ValueError("The uploaded CSV file contains no data or headers.")
+            except pd.errors.ParserError as e:
+                raise ValueError(f"Malformed CSV: Failed to parse rows. Details: {str(e)}")
+            except Exception as e:
+                last_error = e
+                break
+
+        if df is None:
+            if isinstance(last_error, UnicodeDecodeError):
+                raise ValueError("Unable to decode CSV file. Please ensure it is saved in UTF-8 or standard Latin encoding.")
+            raise ValueError(f"Failed to parse CSV file: {str(last_error)}")
 
     # Clean whitespace in column names
     df.columns = [str(col).strip() for col in df.columns]
 
     if df.shape[1] == 0:
-        raise ValueError("CSV contains 0 columns. Please provide a valid CSV with comma-separated values.")
+        raise ValueError("Dataset contains 0 columns. Please provide a valid file with column headers.")
 
     return df
+
+def read_csv_to_dataframe(content: bytes) -> pd.DataFrame:
+    """Alias for backwards compatibility."""
+    return read_dataset_to_dataframe("dataset.csv", content)
 
 def sanitize_records_for_json(df_slice: pd.DataFrame) -> List[Dict[str, Any]]:
     """
@@ -112,14 +133,14 @@ def build_column_summaries(df: pd.DataFrame) -> List[ColumnSummary]:
     """Calculate per-column data types, null counts, null percentages, and unique sample values."""
     summaries = []
     total_rows = len(df)
-    
+
     for col in df.columns:
         series = df[col]
         non_null_count = int(series.count())
         null_count = int(series.isna().sum())
         null_percentage = round((null_count / total_rows * 100), 2) if total_rows > 0 else 0.0
         unique_count = int(series.nunique(dropna=True))
-        
+
         # Get up to 3 non-null sample values converted to JSON-compatible types
         sample_raw = series.dropna().unique()[:3]
         sample_values = []
@@ -155,23 +176,23 @@ def process_uploaded_dataset(filename: str, content: bytes) -> DatasetPreviewRes
     4. Generates preview rows and column metadata
     5. Saves dataset to safe local storage keyed by dataset_id
     """
-    validate_csv_upload(filename=filename, file_size=len(content), content=content)
-    df = read_csv_to_dataframe(content)
-    
+    validate_dataset_upload(filename=filename, file_size=len(content), content=content)
+    df = read_dataset_to_dataframe(filename=filename, content=content)
+
     dataset_id = generate_dataset_id()
     file_path = get_dataset_path(dataset_id)
-    
+
     # Write parsed DataFrame to disk for subsequent analytics milestones
     df.to_csv(file_path, index=False)
-    
+
     row_count, column_count = df.shape
     duplicate_rows_count = int(df.duplicated().sum())
     has_duplicates = duplicate_rows_count > 0
     has_nulls = bool(df.isna().values.any())
-    
+
     columns = build_column_summaries(df)
     preview_rows = sanitize_records_for_json(df.head(10))
-    
+
     return DatasetPreviewResponse(
         dataset_id=dataset_id,
         filename=filename,

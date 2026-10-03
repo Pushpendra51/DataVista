@@ -29,3 +29,6 @@ backend/temp_uploads/
 scratch/
 .DS_Store
 Thumbs.db
+
+.env.*
+!.env.example

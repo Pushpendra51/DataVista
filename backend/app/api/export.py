@@ -28,7 +28,7 @@ def export_csv(dataset_id: str):
     df.to_csv(buf, index=False)
     buf.seek(0)
 
-    filename = f"insightai_export_{dataset_id[:8]}.csv"
+    filename = f"datavista_export_{dataset_id[:8]}.csv"
     return StreamingResponse(
         iter([buf.read()]),
         media_type="text/csv",
@@ -56,7 +56,7 @@ def export_summary(dataset_id: str):
     }
 
     buf = io.BytesIO(json.dumps(summary, indent=2).encode("utf-8"))
-    filename = f"insightai_summary_{dataset_id[:8]}.json"
+    filename = f"datavista_summary_{dataset_id[:8]}.json"
     return StreamingResponse(
         buf,
         media_type="application/json",

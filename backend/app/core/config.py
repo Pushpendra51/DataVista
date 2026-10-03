@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import List
 
 class Settings:
-    PROJECT_NAME: str = "InsightAI"
-    VERSION: str = "0.2.0"
+    PROJECT_NAME: str = "DataVista"
+    VERSION: str = "0.3.0"
     API_PREFIX: str = "/api"
-    DESCRIPTION: str = "CSV Data Analysis and Reporting Web Application API"
+    DESCRIPTION: str = "CSV & Excel Data Analysis and Reporting Web Application API"
     
     # CORS Configuration
     CORS_ORIGINS: List[str] = [
@@ -16,7 +16,7 @@ class Settings:
     
     # File upload constraints
     MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB limit
-    ALLOWED_EXTENSIONS: set = {".csv"}
+    ALLOWED_EXTENSIONS: set = {".csv", ".xlsx", ".xls"}
     
     # Safe temporary storage directory for uploaded datasets
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent

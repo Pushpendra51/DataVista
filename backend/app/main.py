@@ -35,7 +35,7 @@ def create_app() -> FastAPI:
     @app.get("/", tags=["System"])
     def root():
         return {
-            "message": "Welcome to InsightAI API. Visit /docs for Swagger documentation.",
+            "message": "Welcome to DataVista API. Visit /docs for Swagger documentation.",
             "health_endpoint": f"{settings.API_PREFIX}/health",
         }
 

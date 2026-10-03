@@ -1,1 +1,1 @@
-"""InsightAI Backend Application Package."""
+"""DataVista Backend Application Package."""

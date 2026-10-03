@@ -32,7 +32,7 @@ export default function DatasetOverview({ dataset, onReset }) {
           id="reset-dataset-btn"
         >
           <RotateCcw size={14} />
-          Upload Another CSV
+          Upload Another Dataset
         </button>
       </div>
 

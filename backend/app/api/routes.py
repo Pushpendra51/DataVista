@@ -16,7 +16,7 @@ router = APIRouter()
     "/health",
     response_model=HealthResponse,
     summary="Health Check",
-    description="Returns the health status, service name, and version of the InsightAI backend.",
+    description="Returns the health status, service name, and version of the DataVista backend.",
     tags=["System"]
 )
 def get_health() -> HealthResponse:
@@ -30,8 +30,8 @@ def get_health() -> HealthResponse:
     "/upload",
     response_model=DatasetPreviewResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Upload & Preview CSV Dataset",
-    description="Upload a CSV file for validation, parsing, metadata extraction, and initial preview generation.",
+    summary="Upload & Preview CSV or Excel Dataset",
+    description="Upload a CSV or Excel (.xlsx, .xls) file for validation, parsing, metadata extraction, and preview generation.",
     tags=["Dataset"]
 )
 async def upload_dataset(file: UploadFile = File(...)) -> DatasetPreviewResponse:
@@ -43,7 +43,7 @@ async def upload_dataset(file: UploadFile = File(...)) -> DatasetPreviewResponse
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred while processing the CSV: {str(e)}"
+            detail=f"An unexpected error occurred while processing the uploaded file: {str(e)}"
         )
 
 @router.get(
@@ -66,7 +66,7 @@ def get_dataset_preview(
         df = load_dataset(dataset_id)
         total_rows, total_cols = df.shape
         sliced_df = df.iloc[offset: offset + limit]
-        
+
         return {
             "dataset_id": dataset_id,
             "total_rows": total_rows,
@@ -82,4 +82,37 @@ def get_dataset_preview(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to load dataset preview: {str(e)}"
+        )
+
+@router.get(
+    "/dataset/{dataset_id}/records",
+    summary="Fetch All Dataset Records for BI Dashboard",
+    description="Retrieve dataset records for client-side Power BI slicing, pivot tables, and dynamic visual aggregations.",
+    tags=["Dataset"]
+)
+def get_dataset_records(
+    dataset_id: str,
+    limit: int = Query(5000, ge=1, le=10000, description="Maximum number of rows to return")
+):
+    if not validate_dataset_id(dataset_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid dataset ID format."
+        )
+    try:
+        df = load_dataset(dataset_id)
+        sliced_df = df.iloc[:limit]
+
+        return {
+            "dataset_id": dataset_id,
+            "total_rows": len(df),
+            "columns": build_column_summaries(df),
+            "records": sanitize_records_for_json(sliced_df)
+        }
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load dataset records: {str(e)}"
         )

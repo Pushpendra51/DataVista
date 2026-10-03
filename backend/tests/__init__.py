@@ -1,1 +1,1 @@
-"""InsightAI Test Suite."""
+"""DataVista Test Suite."""

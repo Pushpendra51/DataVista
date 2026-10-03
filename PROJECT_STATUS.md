@@ -1,7 +1,7 @@
-# InsightAI — Project Status & Roadmap
+# DataVista — Project Status & Roadmap
 
 ## 1. Project Overview
-InsightAI is an intermediate CSV Data Analysis and Reporting Web Application built with **FastAPI**, **Pandas**, **NumPy**, **Pydantic**, and **React (Vite)**. It provides real data quality profiling, descriptive statistics, group-by aggregations, correlation analysis, interactive charts, and a rule-based question engine without relying on external AI API keys or arbitrary code execution.
+DataVista is a CSV & Excel Data Analysis and Reporting Web Application built with **FastAPI**, **Pandas**, **NumPy**, **Pydantic**, and **React (Vite)**. It provides real data quality profiling, descriptive statistics, group-by aggregations, correlation analysis, interactive charts, and a rule-based question engine without relying on external AI API keys or arbitrary code execution.
 
 ---
 
@@ -11,18 +11,21 @@ InsightAI is an intermediate CSV Data Analysis and Reporting Web Application bui
 | :--- | :--- | :--- | :--- |
 | **Milestone 1** | Workspace inspection, project structure, Python venv, FastAPI health endpoint, React Vite setup | **Completed** | Pytest passed (2/2), Vite build passed |
 | **Milestone 2** | CSV upload handling, file validation, dataset preview, row/column counts, and inferred types | **Completed** | Pytest 9/9 passed, Vite build passed |
-| **Milestone 3** | Data quality summary (missing values, duplicates, type issues) & Pandas descriptive statistics | *Queued* | Not started |
-| **Milestone 4** | Interactive dashboard with KPI cards, tables, and Recharts | *Queued* | Not started |
-| **Milestone 5** | Safe question engine (sum, average, median, min/max, top categories, group-by, correlation) | *Queued* | Not started |
-| **Milestone 6** | Basic data cleaning actions & export (cleaned CSV and analysis summary report) | *Queued* | Not started |
-| **Milestone 7** | Comprehensive automated test suite, error boundary review, and security audit | *Queued* | Not started |
-| **Milestone 8** | Documentation, demo datasets, screenshots, and local end-to-end verification | *Queued* | Not started |
-| **Milestone 9** | Optional enhancements (saved history / AI explanations) | *Queued* | Not started |
-| **Milestone 10** | Production deployment readiness check | *Queued* | Not started |
+| **Milestone 3** | Data quality summary (missing values, duplicates, type issues) & Pandas descriptive statistics | **Completed** | Pytest passed, Vite build passed |
+| **Milestone 4** | Interactive Power BI & Excel Dashboard with slicers, KPI scorecards, charts & pivot matrix | **Completed** | Pytest 42/42 passed, Vite build passed |
+| **Milestone 5** | Safe question engine (sum, average, median, min/max, top categories, group-by, correlation) | **Completed** | Pytest passed |
+| **Milestone 6** | Basic data cleaning actions & export (cleaned CSV and analysis summary report) | **Completed** | Pytest passed |
+| **Milestone 7** | Comprehensive automated test suite, error boundary review, and security audit | **Completed** | Pytest 42/42 passed (100%) |
 
 ---
 
-## 3. Milestone 1 Completed Features
+## 3. Key Implemented Features
+
+- **Interactive Power BI & Excel BI Dashboard**:
+  - **Dynamic Slicers**: Multi-select categorical filters & numeric range filters with live active slice metrics.
+  - **Executive KPI Callouts**: Real-time sum, mean, max, count metrics computed dynamically over filtered slices.
+  - **Multi-Chart Visual Canvas**: Bar/Column, Donut, Line Trend, Scatter Correlation Plot, and Pivot Breakdown Matrix.
+  - **Custom Widget Builder**: Add, edit, remove, expand focus view, and export dashboard views to PDF/print.
 - **Clean Project Architecture**: Established separation of concerns across `backend/app/api`, `backend/app/core`, `backend/app/schemas`, `backend/app/services`, and `frontend/src`.
 - **Python Virtual Environment**: Created `backend/venv` running Python 3.10.8 with all required dependencies installed (`fastapi`, `uvicorn`, `pandas`, `numpy`, `pydantic`, `pytest`, `httpx`, `python-multipart`).
 - **Config & CORS**: Configured application settings in `backend/app/core/config.py` with CORS whitelist for `http://localhost:5173`.

@@ -1,11 +1,12 @@
-# InsightAI — CSV Data Analysis & Reporting Platform
+# DataVista — CSV & Excel Data Analysis & Reporting Platform
 
-InsightAI is an intermediate, full-stack data analysis and reporting web application built with **FastAPI**, **Pandas**, **NumPy**, **Pydantic**, and **React (Vite)**. It empowers users to upload real-world CSV files, preview datasets, diagnose data quality issues (missing values, duplicates, type mismatches), compute descriptive statistics, explore group-by aggregations and correlations, visualize patterns with interactive charts, and run deterministic, safe data queries — all without external AI dependencies or arbitrary code execution risks.
+DataVista is a full-stack data analysis and reporting web application built with **FastAPI**, **Pandas**, **NumPy**, **Pydantic**, and **React (Vite)**. It empowers users to upload real-world CSV and Excel files (.xlsx, .xls), preview datasets, diagnose data quality issues (missing values, duplicates, type mismatches), compute descriptive statistics, explore group-by aggregations and correlations, visualize patterns with interactive charts, and run deterministic, safe data queries — all without external AI dependencies or arbitrary code execution risks.
 
 ---
 
 ## Key Highlights & Core Capabilities
 
+- **Power BI & Excel Style Interactive BI Dashboard**: Dynamic cross-filtering slicers, executive KPI callout cards, dynamic multi-chart canvas (Bar, Donut, Line, Scatter), pivot matrices, and custom visual widget builder.
 - **Strict Data Integrity**: Every metric, summary, and chart point is calculated directly by Pandas and NumPy from the uploaded dataset. Zero fabricated analytics or mocked results.
 - **Deterministic & Safe Question Engine**: Answers data questions (sums, averages, medians, rankings, correlations, group-bys) using verified Pandas operations rather than unsafe SQL or code execution.
 - **Data Quality Profiling**: Instant detection of missing cells per column, duplicate records, and mixed data types.

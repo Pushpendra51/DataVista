@@ -24,8 +24,9 @@ export default function CsvUploader({ onUploadSuccess, loading, setLoading }) {
     setError(null)
 
     // Client-side extension validation
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setError("Please select a valid CSV file (.csv extension).")
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'))
+    if (!['.csv', '.xlsx', '.xls'].includes(ext)) {
+      setError("Please select a valid CSV (.csv) or Excel (.xlsx, .xls) file.")
       return
     }
 
@@ -100,7 +101,7 @@ export default function CsvUploader({ onUploadSuccess, loading, setLoading }) {
           type="file"
           ref={fileInputRef}
           onChange={(e) => e.target.files && handleFile(e.target.files[0])}
-          accept=".csv"
+          accept=".csv, .xlsx, .xls"
           className="file-input-hidden"
           id="csv-file-input"
         />
@@ -115,10 +116,10 @@ export default function CsvUploader({ onUploadSuccess, loading, setLoading }) {
 
         <div>
           <h3 className="dropzone-title">
-            {loading ? "Processing CSV with Pandas..." : "Upload your CSV Dataset"}
+            {loading ? "Processing dataset with Pandas..." : "Upload your CSV or Excel Dataset"}
           </h3>
           <p className="dropzone-subtitle">
-            Drag and drop your file here, or click to browse (Max 10 MB)
+            Drag and drop your CSV (.csv) or Excel (.xlsx, .xls) file here, or click to browse (Max 10 MB)
           </p>
         </div>
 
