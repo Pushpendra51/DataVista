@@ -6,6 +6,8 @@ from app.api.analytics import router as analytics_router
 from app.api.query import router as query_router
 from app.api.clean import router as clean_router
 from app.api.export import router as export_router
+from app.api.visualizations import router as visualization_router
+from app.api.machine_learning import router as ml_router
 
 
 def create_app() -> FastAPI:
@@ -31,6 +33,8 @@ def create_app() -> FastAPI:
     app.include_router(query_router, prefix=settings.API_PREFIX)
     app.include_router(clean_router, prefix=settings.API_PREFIX)
     app.include_router(export_router, prefix=settings.API_PREFIX)
+    app.include_router(visualization_router, prefix=settings.API_PREFIX)
+    app.include_router(ml_router, prefix=settings.API_PREFIX)
 
     @app.get("/", tags=["System"])
     def root():

@@ -150,3 +150,39 @@ def test_get_preview_invalid_id():
     fake_id = "0" * 32
     response = client.get(f"/api/dataset/{fake_id}/preview")
     assert response.status_code == 404
+
+def test_preview_search_sort_and_delete():
+    csv_content = (
+        "name,score\n"
+        "Alice,88\n"
+        "Bob,95\n"
+        "Carol,92\n"
+    )
+    response = client.post(
+        "/api/upload",
+        files={"file": ("scores.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+    )
+    assert response.status_code == 201
+    dataset_id = response.json()["dataset_id"]
+
+    search_res = client.get(
+        f"/api/dataset/{dataset_id}/preview",
+        params={"search": "bob", "offset": 0, "limit": 10},
+    )
+    assert search_res.status_code == 200
+    assert search_res.json()["total_rows"] == 1
+    assert search_res.json()["rows"][0]["name"] == "Bob"
+
+    sort_res = client.get(
+        f"/api/dataset/{dataset_id}/preview",
+        params={"sort_by": "score", "sort_direction": "desc", "offset": 0, "limit": 10},
+    )
+    assert sort_res.status_code == 200
+    assert sort_res.json()["rows"][0]["name"] == "Bob"
+
+    delete_res = client.delete(f"/api/dataset/{dataset_id}")
+    assert delete_res.status_code == 200
+    assert delete_res.json()["deleted"] is True
+
+    missing_res = client.get(f"/api/dataset/{dataset_id}/preview")
+    assert missing_res.status_code == 404

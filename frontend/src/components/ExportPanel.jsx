@@ -49,10 +49,10 @@ export default function ExportPanel({ datasetId, columns, onDatasetCleaned }) {
   }
 
   const selectStyle = {
-    background: '#0d1117',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '6px',
-    color: '#f9fafb',
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
+    borderRadius: '8px',
+    color: 'var(--text-main)',
     padding: '0.55rem 0.85rem',
     fontSize: '0.875rem',
     fontFamily: 'inherit',

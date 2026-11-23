@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
-from app.schemas.analytics import QueryRequest, QueryResponse
+from app.schemas.analytics import QueryRequest, QueryResponse, NaturalLanguageQueryRequest
 from app.services.dataset_service import load_dataset, validate_dataset_id
-from app.services.question_service import execute_query
+from app.services.question_service import execute_query, interpret_natural_question
 
 router = APIRouter(prefix="/query", tags=["Question Engine"])
 
@@ -26,3 +26,21 @@ def ask_question(dataset_id: str, request: QueryRequest) -> QueryResponse:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@router.post("/{dataset_id}/natural", response_model=QueryResponse, summary="Ask a Natural-Language Data Question")
+def ask_natural_question(dataset_id: str, request: NaturalLanguageQueryRequest) -> QueryResponse:
+    """Interpret a common question and execute only a whitelisted Pandas operation."""
+    if not validate_dataset_id(dataset_id):
+        raise HTTPException(status_code=400, detail="Invalid dataset ID.")
+    try:
+        df = load_dataset(dataset_id)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    try:
+        structured_request = interpret_natural_question(df, request.question)
+        return execute_query(df, structured_request)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Natural-language query failed: {str(e)}")

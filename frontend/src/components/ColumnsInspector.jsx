@@ -1,4 +1,4 @@
-import { Database, Hash, Type, HelpCircle } from 'lucide-react'
+import { Database, Hash, Type } from 'lucide-react'
 
 export default function ColumnsInspector({ columns }) {
   if (!columns || columns.length === 0) return null

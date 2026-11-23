@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Send, Loader2, CheckCircle2, AlertCircle, HelpCircle } from 'lucide-react'
+import { Send, Loader2, CheckCircle2, AlertCircle, HelpCircle, Sparkles } from 'lucide-react'
 
 const SUPPORTED_OPS = [
   { value: 'sum',          label: 'Sum',          hint: 'Total of all values (numeric)' },
@@ -22,6 +22,8 @@ export default function QuestionEngine({ datasetId, columns }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [question, setQuestion] = useState('')
+  const [conversation, setConversation] = useState([])
 
   const needsGroupBy = operation === 'groupby'
   const needsTopN = operation === 'top_n'
@@ -57,8 +59,84 @@ export default function QuestionEngine({ datasetId, columns }) {
 
   const hint = SUPPORTED_OPS.find(o => o.value === operation)?.hint || ''
 
+  const handleNaturalQuestion = async (event) => {
+    event.preventDefault()
+    const text = question.trim()
+    if (!text) return
+
+    setLoading(true)
+    setError(null)
+    setConversation(previous => [...previous, { role: 'user', text }])
+    setQuestion('')
+
+    try {
+      const res = await fetch(`/api/query/${datasetId}/natural`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: text }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+      setConversation(previous => [
+        ...previous,
+        {
+          role: 'assistant',
+          text: data.formatted_result,
+          operation: data.operation,
+          supported: data.supported,
+        },
+      ])
+    } catch (err) {
+      setConversation(previous => [
+        ...previous,
+        { role: 'assistant', text: err.message, supported: false },
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="analyst-chat">
+        <div className="analyst-chat-header">
+          <span className="quick-action-icon violet"><Sparkles size={18} /></span>
+          <div>
+            <h3>AI Analyst</h3>
+            <p>Deterministic natural-language analysis for this dataset</p>
+          </div>
+        </div>
+
+        <div className="conversation-list" aria-live="polite">
+          {conversation.length === 0 ? (
+            <div className="analyst-empty">
+              Ask a question about averages, totals, missing values, categories, or grouped results.
+            </div>
+          ) : conversation.map((message, index) => (
+            <div key={index} className={`conversation-message ${message.role}`}>
+              {message.role === 'assistant' && (
+                <span className="conversation-label">Calculated result</span>
+              )}
+              <span style={{ whiteSpace: 'pre-wrap' }}>{message.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <form className="analyst-prompt" onSubmit={handleNaturalQuestion}>
+          <input
+            type="text"
+            value={question}
+            onChange={event => setQuestion(event.target.value)}
+            placeholder="Ask about this dataset..."
+            maxLength={500}
+          />
+          <button type="submit" className="btn btn-primary" disabled={loading || !question.trim()}>
+            {loading ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
+            Ask
+          </button>
+        </form>
+      </div>
+
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
         <HelpCircle size={16} color="var(--primary)" style={{ marginTop: 3 }} />
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
@@ -187,10 +265,10 @@ export default function QuestionEngine({ datasetId, columns }) {
 }
 
 const selectStyle = {
-  background: '#0d1117',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: '6px',
-  color: '#f9fafb',
+  background: 'var(--bg-card)',
+  border: '1px solid var(--border)',
+  borderRadius: '8px',
+  color: 'var(--text-main)',
   padding: '0.55rem 0.85rem',
   fontSize: '0.875rem',
   fontFamily: 'inherit',

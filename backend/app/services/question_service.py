@@ -14,6 +14,60 @@ SUPPORTED_OPERATIONS = {
     "count", "unique_count", "null_count", "top_n", "groupby",
 }
 
+
+def interpret_natural_question(df: pd.DataFrame, question: str) -> QueryRequest:
+    """Map common dataset questions to the safe operation whitelist."""
+    text = question.lower().strip()
+    columns = df.columns.tolist()
+    mentioned = [col for col in columns if col.lower() in text]
+    column = mentioned[0] if mentioned else columns[0]
+    group_by = None
+
+    if any(term in text for term in ("missing", "null", "blank")):
+        operation = "null_count"
+    elif any(term in text for term in ("correlation", "related", "relationship")):
+        numeric = df.select_dtypes(include=[np.number]).columns.tolist()
+        if len(numeric) >= 2:
+            operation = "groupby"
+            column = numeric[0]
+            group_by = numeric[1]
+        else:
+            operation = "unique_count"
+    elif any(term in text for term in ("highest", "top", "largest", "maximum", "max")):
+        operation = "top_n" if any(col.lower() in text for col in df.select_dtypes(include=["object", "category"]).columns) else "max"
+    elif any(term in text for term in ("lowest", "smallest", "minimum", "min")):
+        operation = "min"
+    elif any(term in text for term in ("median", "middle")):
+        operation = "median"
+    elif any(term in text for term in ("average", "mean", "average value")):
+        operation = "mean"
+    elif any(term in text for term in ("sum", "total")):
+        operation = "sum"
+    elif any(term in text for term in ("count", "how many", "number of")):
+        operation = "count"
+    elif any(term in text for term in ("unique", "distinct")):
+        operation = "unique_count"
+    elif any(term in text for term in ("by", "per", "compare")):
+        operation = "groupby"
+        for col in df.select_dtypes(include=["object", "category"]).columns:
+            if col.lower() in text:
+                group_by = col
+                break
+        if group_by is None:
+            for col in df.select_dtypes(include=["object", "category"]).columns:
+                if col != column:
+                    group_by = col
+                    break
+    else:
+        operation = "top_n"
+
+    return QueryRequest(
+        operation=operation,
+        column=column,
+        group_by=group_by,
+        top_n=5,
+    )
+
 NUMERIC_ONLY_OPS = {"sum", "mean", "average", "median", "min", "max"}
 
 

@@ -1,6 +1,6 @@
-import { Rows, Columns, HardDrive, AlertTriangle, CheckCircle, RotateCcw } from 'lucide-react'
+import { Rows, Columns, HardDrive, AlertTriangle, CheckCircle, RotateCcw, Trash2 } from 'lucide-react'
 
-export default function DatasetOverview({ dataset, onReset }) {
+export default function DatasetOverview({ dataset, onReset, onDelete }) {
   if (!dataset) return null
 
   const formatBytes = (bytes) => {
@@ -25,15 +25,31 @@ export default function DatasetOverview({ dataset, onReset }) {
           </p>
         </div>
 
-        <button
-          className="btn btn-secondary"
-          onClick={onReset}
-          title="Upload a different dataset"
-          id="reset-dataset-btn"
-        >
-          <RotateCcw size={14} />
-          Upload Another Dataset
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={onReset}
+            title="Upload a different dataset"
+            id="reset-dataset-btn"
+          >
+            <RotateCcw size={14} />
+            Upload Another
+          </button>
+          {onDelete && (
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                if (window.confirm(`Delete "${dataset.filename}"? This cannot be undone.`)) {
+                  onDelete(dataset.dataset_id)
+                }
+              }}
+              title="Delete this dataset session"
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="kpi-grid">

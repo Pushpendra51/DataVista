@@ -112,6 +112,31 @@ def test_query_groupby_missing_group_column():
     assert res.status_code == 400
 
 
+def test_natural_language_average_query():
+    did = _upload()
+    response = client.post(
+        f"/api/query/{did}/natural",
+        json={"question": "What is the average score?"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["supported"] is True
+    assert data["operation"] == "mean"
+    assert abs(data["result"] - 80.6) < 0.01
+
+
+def test_natural_language_missing_value_query():
+    did = _upload()
+    response = client.post(
+        f"/api/query/{did}/natural",
+        json={"question": "Which columns have missing values?"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["supported"] is True
+    assert data["operation"] == "null_count"
+
+
 # ─── Cleaning ─────────────────────────────────────────────────────────────────
 
 NULL_CSV = (
@@ -207,3 +232,85 @@ def test_export_summary():
     assert "descriptive_statistics" in summary
     assert "correlation" in summary
     assert summary["shape"]["rows"] == 5
+
+
+def test_export_html_report():
+    response = client.post(
+        "/api/upload",
+        files={"file": ("report.csv", io.BytesIO(SIMPLE_CSV.encode()), "text/csv")},
+    )
+    did = response.json()["dataset_id"]
+    report = client.get(f"/api/export/{did}/html")
+    assert report.status_code == 200
+    assert "text/html" in report.headers["content-type"]
+    assert "DataVista Analytical Report" in report.text
+
+
+def test_export_excel_report():
+    response = client.post(
+        "/api/upload",
+        files={"file": ("report.csv", io.BytesIO(SIMPLE_CSV.encode()), "text/csv")},
+    )
+    did = response.json()["dataset_id"]
+    workbook = client.get(f"/api/export/{did}/xlsx")
+    assert workbook.status_code == 200
+    assert "spreadsheetml" in workbook.headers["content-type"]
+
+
+def test_visualization_endpoint():
+    did = _upload()
+    response = client.post(
+        f"/api/visualizations/{did}",
+        json={
+            "chart_type": "bar",
+            "x_column": "name",
+            "y_column": "score",
+            "aggregation": "mean",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["chart_type"] == "bar"
+    assert isinstance(data["points"], list)
+
+
+def test_ml_regression_endpoint():
+    did = _upload()
+    response = client.post(
+        f"/api/ml/{did}/train",
+        json={
+            "task": "regression",
+            "target_column": "score",
+            "feature_columns": [],
+            "test_size": 0.2,
+            "model": "linear",
+        },
+    )
+    assert response.status_code == 400
+
+
+def test_ml_regression_success():
+    rows = "\n".join([
+        f"{i},{i * 2},{'A' if i % 2 == 0 else 'B'}"
+        for i in range(1, 21)
+    ])
+    csv_content = "id,y,class\n" + rows + "\n"
+    response = client.post(
+        "/api/upload",
+        files={"file": ("ml.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+    )
+    did = response.json()["dataset_id"]
+    result = client.post(
+        f"/api/ml/{did}/train",
+        json={
+            "task": "regression",
+            "target_column": "y",
+            "feature_columns": ["id"],
+            "test_size": 0.2,
+            "model": "linear",
+        },
+    )
+    assert result.status_code == 200
+    data = result.json()
+    assert data["task"] == "regression"
+    assert {"mae", "mse", "rmse", "r2"} <= set(data["metrics"])

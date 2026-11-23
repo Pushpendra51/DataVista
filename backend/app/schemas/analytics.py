@@ -94,3 +94,69 @@ class CleaningResponse(BaseModel):
     rows_removed: int
     new_dataset_id: str
     message: str
+
+
+class OutlierSummary(BaseModel):
+    column: str
+    count: int
+    percentage: float
+    lower_bound: Optional[float] = None
+    upper_bound: Optional[float] = None
+
+
+class EDASummary(BaseModel):
+    row_count: int
+    column_count: int
+    numeric_columns: List[str]
+    categorical_columns: List[str]
+    missing_values: int
+    duplicate_rows: int
+    numeric_summary: List[ColumnStats]
+    categorical_summary: List[ColumnFrequency]
+    correlation_pairs: List[CorrelationEntry]
+    outliers: List[OutlierSummary]
+    findings: List[str]
+    recommended_visualizations: List[str]
+
+
+class NaturalLanguageQueryRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+
+
+class ChartRequest(BaseModel):
+    chart_type: str = Field(..., description="bar, line, pie, doughnut, area, scatter, histogram, box")
+    x_column: str
+    y_column: Optional[str] = None
+    aggregation: str = Field("count", description="count, sum, mean, median, min, max")
+    title: Optional[str] = None
+
+
+class ChartPoint(BaseModel):
+    name: str
+    value: Optional[float] = None
+    secondary: Optional[float] = None
+    count: Optional[int] = None
+
+
+class ChartResponse(BaseModel):
+    chart_type: str
+    title: str
+    x_label: str
+    y_label: str
+    points: List[ChartPoint]
+
+
+class MLTrainRequest(BaseModel):
+    task: str = Field(..., description="regression, classification, clustering")
+    target_column: Optional[str] = None
+    feature_columns: List[str] = Field(default_factory=list)
+    test_size: float = Field(0.2, ge=0.1, le=0.5)
+    model: str = Field("linear", description="linear, ridge, logistic, forest, kmeans")
+
+
+class MLTrainResponse(BaseModel):
+    task: str
+    model: str
+    metrics: Dict[str, Any]
+    feature_importance: Dict[str, float]
+    cluster_sizes: Dict[str, int] = Field(default_factory=dict)

@@ -1,11 +1,12 @@
 import io
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.analytics import (
-    DataQualityReport, DescriptiveStatsResponse, CorrelationResponse
+    DataQualityReport, DescriptiveStatsResponse, CorrelationResponse, EDASummary
 )
 from app.services.dataset_service import load_dataset, validate_dataset_id
 from app.services.analytics_service import (
-    get_data_quality_report, get_descriptive_stats, get_correlation_matrix
+    get_data_quality_report, get_descriptive_stats, get_correlation_matrix,
+    get_eda_summary
 )
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -44,3 +45,13 @@ def get_correlation(dataset_id: str) -> CorrelationResponse:
         return get_correlation_matrix(df)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Correlation failed: {str(e)}")
+
+
+@router.get("/{dataset_id}/eda", response_model=EDASummary, summary="Automated Exploratory Data Analysis")
+def get_eda(dataset_id: str) -> EDASummary:
+    """Generate a real automated EDA summary for the selected dataset."""
+    df = _get_df(dataset_id)
+    try:
+        return get_eda_summary(df)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"EDA failed: {str(e)}")

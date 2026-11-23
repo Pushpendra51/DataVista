@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Activity, RefreshCw, Layers, UploadCloud,
+  RefreshCw, Layers, UploadCloud,
   ShieldCheck, BarChart2, HelpCircle, Download, Table, Columns, SlidersHorizontal,
-  Search, Bell, Settings, Sparkles, CheckCircle2, FileSpreadsheet, ArrowUpRight
+  Search, Settings, Sparkles, CheckCircle2, ArrowUpRight,
+  Menu, Sun, Moon, ChevronRight, X, WandSparkles,
+  Eraser, Database, CircleCheck, ScanSearch, FolderKanban, FileText
 } from 'lucide-react'
 import CsvUploader from './components/CsvUploader.jsx'
 import DatasetOverview from './components/DatasetOverview.jsx'
@@ -13,15 +15,24 @@ import { CategoryBarChart, NumericStatsChart, CorrelationHeatmap } from './compo
 import QuestionEngine from './components/QuestionEngine.jsx'
 import ExportPanel from './components/ExportPanel.jsx'
 import BIDashboard from './components/BIDashboard.jsx'
+import VisualizationStudio from './components/VisualizationStudio.jsx'
+import MachineLearningLab from './components/MachineLearningLab.jsx'
+import ReportStudio from './components/ReportStudio.jsx'
+import ProjectsWorkspace from './components/ProjectsWorkspace.jsx'
 
 const TABS = [
   { id: 'overview',     label: 'Overview',      icon: Layers },
+  { id: 'projects',     label: 'My Projects',   icon: FolderKanban },
   { id: 'bi-dashboard', label: 'BI Dashboard',  icon: SlidersHorizontal },
   { id: 'columns',      label: 'Columns',       icon: Columns },
   { id: 'preview',      label: 'Data Preview',  icon: Table },
   { id: 'quality',      label: 'Data Quality',  icon: ShieldCheck },
+  { id: 'eda',          label: 'Automated EDA', icon: ScanSearch },
   { id: 'stats',        label: 'Statistics',    icon: BarChart2 },
   { id: 'ask',          label: 'Ask Data (AI)', icon: HelpCircle, badge: 'NEW' },
+  { id: 'visualizations', label: 'Visualization Studio', icon: BarChart2 },
+  { id: 'ml',           label: 'Machine Learning Lab', icon: WandSparkles },
+  { id: 'reports',      label: 'Report Studio', icon: FileText },
   { id: 'export',       label: 'Clean & Export',icon: Download },
 ]
 
@@ -51,7 +62,6 @@ function useFetch(url, enabled) {
 }
 
 export default function App() {
-  const [healthData, setHealthData]   = useState(null)
   const [healthLoading, setHealthLoading] = useState(true)
   const [healthError, setHealthError] = useState(null)
   const [healthLatency, setHealthLatency] = useState(null)
@@ -59,6 +69,15 @@ export default function App() {
   const [dataset, setDataset]         = useState(null)
   const [activeTab, setActiveTab]     = useState('overview')
   const [searchQuery, setSearchQuery] = useState('')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [theme, setTheme] = useState(() => localStorage.getItem('datavista-theme') || 'light')
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('datavista-theme', theme)
+  }, [theme])
 
   // ── Health check ──────────────────────────────────────────────────────────
   const checkHealth = async () => {
@@ -69,10 +88,9 @@ export default function App() {
       const res = await fetch('/api/health')
       setHealthLatency(Math.round(performance.now() - t0))
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setHealthData(await res.json())
+      await res.json()
     } catch (err) {
       setHealthError(err.message)
-      setHealthData(null)
     } finally {
       setHealthLoading(false)
     }
@@ -84,23 +102,84 @@ export default function App() {
   const qFetch  = useFetch(did ? `/api/analytics/${did}/quality`     : null, !!did && activeTab === 'quality')
   const sFetch  = useFetch(did ? `/api/analytics/${did}/statistics`  : null, !!did && activeTab === 'stats')
   const cFetch  = useFetch(did ? `/api/analytics/${did}/correlation` : null, !!did && activeTab === 'stats')
+  const edaFetch = useFetch(did ? `/api/analytics/${did}/eda` : null, !!did && activeTab === 'eda')
 
   const handleUploadSuccess = (data) => { setDataset(data); setActiveTab('overview') }
   const handleReset         = () => { setDataset(null); setActiveTab('overview') }
-  const handleDatasetCleaned = (newId) => {
-    if (dataset) setDataset(prev => ({ ...prev, dataset_id: newId }))
+  const handleDatasetCleaned = async (newId) => {
+    if (!dataset) return
+    try {
+      const [previewResponse, qualityResponse] = await Promise.all([
+        fetch(`/api/dataset/${newId}/preview?offset=0&limit=10`),
+        fetch(`/api/analytics/${newId}/quality`),
+      ])
+      const preview = await previewResponse.json()
+      const quality = await qualityResponse.json()
+      if (!previewResponse.ok) throw new Error(preview.detail || 'Failed to load cleaned dataset')
+      setDataset({
+        ...dataset,
+        dataset_id: newId,
+        filename: `Cleaned · ${dataset.filename}`,
+        row_count: preview.total_rows,
+        column_count: preview.total_columns,
+        columns: preview.columns,
+        preview_rows: preview.rows,
+        has_nulls: quality.total_missing_cells > 0,
+        has_duplicates: quality.duplicate_rows > 0,
+        duplicate_rows_count: quality.duplicate_rows,
+      })
+      setActiveTab('overview')
+    } catch {
+      setDataset(prev => ({ ...prev, dataset_id: newId }))
+    }
+  }
+
+  const handleDatasetDelete = async (datasetId) => {
+    try {
+      const response = await fetch(`/api/dataset/${datasetId}`, { method: 'DELETE' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || 'Failed to delete dataset')
+      setDataset(null)
+      setActiveTab('overview')
+    } catch (error) {
+      window.alert(error.message)
+    }
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {mobileNavOpen && (
+        <button
+          className="mobile-nav-backdrop"
+          aria-label="Close navigation"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
       {/* ── Left Sidebar Navigation ── */}
-      <aside className="app-sidebar">
+      <aside className={`app-sidebar ${mobileNavOpen ? 'mobile-open' : ''}`}>
         <div>
           <div className="sidebar-brand">
             <div className="brand-icon">DV</div>
-            <div>
+            <div className="brand-copy">
               <div className="brand-title">DataVista</div>
+              <div className="brand-subtitle">Analytics workspace</div>
             </div>
+            <button
+              className="sidebar-collapse-btn"
+              type="button"
+              onClick={() => setSidebarCollapsed(value => !value)}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {sidebarCollapsed ? <ChevronRight size={16} /> : <Menu size={16} />}
+            </button>
+            <button
+              className="mobile-nav-close"
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              title="Close navigation"
+            >
+              <X size={18} />
+            </button>
           </div>
 
           <div className="sidebar-menu">
@@ -109,8 +188,12 @@ export default function App() {
               <button
                 key={id}
                 id={`tab-${id}`}
-                onClick={() => setActiveTab(id)}
+                onClick={() => {
+                  setActiveTab(id)
+                  setMobileNavOpen(false)
+                }}
                 className={`sidebar-nav-item ${activeTab === id ? 'active' : ''}`}
+                title={sidebarCollapsed ? label : undefined}
               >
                 <div className="nav-item-left">
                   <Icon size={16} />
@@ -119,37 +202,26 @@ export default function App() {
                 {badge && <span className="badge-new">{badge}</span>}
               </button>
             ))}
-
-            <div className="menu-section-label" style={{ marginTop: '1.25rem' }}>Sample Datasets</div>
-            <button className="sidebar-nav-item" onClick={() => setActiveTab('overview')}>
-              <div className="nav-item-left">
-                <FileSpreadsheet size={15} color="var(--primary)" />
-                <span style={{ fontSize: '0.8rem' }}>E-Commerce Sales</span>
-              </div>
-            </button>
-            <button className="sidebar-nav-item" onClick={() => setActiveTab('overview')}>
-              <div className="nav-item-left">
-                <FileSpreadsheet size={15} color="#a855f7" />
-                <span style={{ fontSize: '0.8rem' }}>Student Performance</span>
-              </div>
-            </button>
-            <button className="sidebar-nav-item" onClick={() => setActiveTab('overview')}>
-              <div className="nav-item-left">
-                <FileSpreadsheet size={15} color="#10b981" />
-                <span style={{ fontSize: '0.8rem' }}>Real Estate Prices</span>
-              </div>
-            </button>
           </div>
         </div>
 
         <div className="sidebar-footer">
-          <button className="sidebar-nav-item">
+          <button
+            className="sidebar-nav-item"
+            type="button"
+            onClick={() => setTheme(value => value === 'light' ? 'dark' : 'light')}
+            title="Theme preference"
+          >
             <div className="nav-item-left">
               <Settings size={16} />
-              <span>Settings</span>
+              <span>Theme settings</span>
             </div>
           </button>
-          <button className="sidebar-nav-item">
+          <button
+            className="sidebar-nav-item"
+            type="button"
+            onClick={() => window.open('/docs', '_blank', 'noopener,noreferrer')}
+          >
             <div className="nav-item-left">
               <HelpCircle size={16} />
               <span>Help & Support</span>
@@ -162,14 +234,37 @@ export default function App() {
       <div className="main-wrapper">
         {/* Top Header Bar */}
         <header className="topbar">
+          <button
+            className="mobile-menu-btn"
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            title="Open navigation"
+          >
+            <Menu size={18} />
+          </button>
+          <div className="page-heading">
+            <span className="breadcrumb">DataVista</span>
+            <ChevronRight size={14} />
+            <strong>{TABS.find(tab => tab.id === activeTab)?.label || 'Overview'}</strong>
+          </div>
           <div className="search-container">
             <Search size={16} color="var(--text-dim)" />
             <input
               type="text"
               className="search-input"
-              placeholder="Search features, columns, or ask a question..."
+              placeholder="Search workspace"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  const query = searchQuery.trim().toLowerCase()
+                  const match = TABS.find(tab => tab.label.toLowerCase().includes(query))
+                  if (match) {
+                    setActiveTab(match.id)
+                    setSearchQuery('')
+                  }
+                }
+              }}
             />
           </div>
 
@@ -184,12 +279,33 @@ export default function App() {
               <RefreshCw size={15} className={healthLoading ? "spin" : ""} />
             </button>
 
-            <div className="icon-btn" title="Notifications">
-              <Bell size={16} />
-              <div className="notification-dot" />
-            </div>
+            <button
+              className="icon-btn"
+              type="button"
+              onClick={() => setTheme(value => value === 'light' ? 'dark' : 'light')}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
 
-            <div className="user-avatar" title="User Account">DV</div>
+            <div className="profile-menu-wrap">
+              <button
+                className="user-avatar"
+                type="button"
+                onClick={() => setProfileOpen(value => !value)}
+                title="Workspace menu"
+                aria-expanded={profileOpen}
+              >
+                DV
+              </button>
+              {profileOpen && (
+                <div className="profile-menu">
+                  <strong>Local workspace</strong>
+                  <span>Current session</span>
+                  <button type="button" onClick={() => setProfileOpen(false)}>Close menu</button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -198,22 +314,25 @@ export default function App() {
           {/* Upload state (No dataset loaded yet) */}
           {!dataset && (
             <>
-              {/* Hero Banner Section */}
-              <section className="hero-banner">
+              {activeTab === 'projects' && (
+                <ProjectsWorkspace datasetId={null} datasetName={null} />
+              )}
+              {activeTab !== 'projects' && (
+                <section className="hero-banner">
                 <div className="hero-text">
                   <div className="hero-badge">
-                    <Sparkles size={14} /> Full Stack Data Analysis Platform
+                    <Sparkles size={14} /> Intelligent Data Analytics Platform
                   </div>
                   <h1 className="hero-headline">
                     Turn your data into <span>actionable insights.</span>
                   </h1>
                   <p className="hero-subtext">
-                    Upload CSV or Excel files, explore, analyze, visualize, ask questions and export — all powered by FastAPI & Pandas, no API keys required.
+                    Upload your datasets, explore patterns, uncover insights, create visualizations, and generate reports — all in one intelligent analytics workspace.
                   </p>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                     <div className="pipeline-item active" style={{ padding: '0.5rem 0.85rem' }}>
                       <CheckCircle2 size={15} color="var(--success)" />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>100% Deterministic Engine</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Reliable Analytics Engine</span>
                     </div>
                     <div className="pipeline-item active" style={{ padding: '0.5rem 0.85rem' }}>
                       <CheckCircle2 size={15} color="var(--primary)" />
@@ -223,13 +342,14 @@ export default function App() {
                 </div>
 
                 {/* Upload Card */}
-                <div className="card" style={{ background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)' }}>
+                <div className="card" style={{ padding: '20px' }}>
                   <div className="card-header">
                     <h2 className="card-title"><UploadCloud size={18} color="var(--primary)" />Upload Dataset</h2>
                   </div>
                   <CsvUploader onUploadSuccess={handleUploadSuccess} loading={uploadLoading} setLoading={setUploadLoading} />
                 </div>
               </section>
+              )}
             </>
           )}
 
@@ -238,43 +358,131 @@ export default function App() {
             <>
               {/* Dataset KPI Summary Bar */}
               <div className="card">
-                <DatasetOverview dataset={dataset} onReset={handleReset} />
+                <DatasetOverview
+                  dataset={dataset}
+                  onReset={handleReset}
+                  onDelete={handleDatasetDelete}
+                />
               </div>
 
               {/* Tab Panel Header */}
               <div className="card" style={{ padding: '1.75rem' }}>
                 {activeTab === 'overview' && (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.7 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--text-main)', fontWeight: 700, fontSize: '1.1rem' }}>
-                      <CheckCircle2 size={20} color="var(--success)" />
-                      Dataset Successfully Loaded & Parsed
+                  <div className="overview-dashboard">
+                    <div className="overview-heading">
+                      <div>
+                        <p className="overview-eyebrow">Current workspace</p>
+                        <h2>Welcome back to DataVista</h2>
+                        <p>Continue from the dataset you loaded or start a new analysis.</p>
+                      </div>
+                      <span className={`dataset-status ${dataset.has_nulls || dataset.has_duplicates ? 'needs-attention' : 'ready'}`}>
+                        {dataset.has_nulls || dataset.has_duplicates
+                          ? <ShieldCheck size={14} />
+                          : <CircleCheck size={14} />}
+                        {dataset.has_nulls || dataset.has_duplicates ? 'Needs review' : 'Ready to analyze'}
+                      </span>
                     </div>
-                    <p>Select any tab from the left sidebar to analyze your dataset:</p>
-                    <div className="cards-grid" style={{ marginTop: '1.25rem' }}>
-                      <div className="column-card" onClick={() => setActiveTab('bi-dashboard')} style={{ cursor: 'pointer' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>BI Dashboard</span> <ArrowUpRight size={16} />
+
+                    <section className="quick-actions" aria-labelledby="quick-actions-title">
+                      <div className="section-heading">
+                        <div>
+                          <h3 id="quick-actions-title">Quick actions</h3>
+                          <p>Jump directly into your next analytical task.</p>
                         </div>
-                        <p style={{ fontSize: '0.825rem' }}>Power BI & Excel style slicers, KPI cards & custom charts canvas.</p>
                       </div>
-                      <div className="column-card" onClick={() => setActiveTab('columns')} style={{ cursor: 'pointer' }}>
-                        <div style={{ fontWeight: 700, color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>Columns Inspector</span> <ArrowUpRight size={16} />
+
+                      <div className="quick-action-grid">
+                        <button type="button" className="quick-action-card" onClick={() => setActiveTab('preview')}>
+                          <span className="quick-action-icon blue"><Table size={18} /></span>
+                          <span>
+                            <strong>Explore data</strong>
+                            <small>Browse and inspect records</small>
+                          </span>
+                          <ArrowUpRight size={16} />
+                        </button>
+                        <button type="button" className="quick-action-card" onClick={() => setActiveTab('quality')}>
+                          <span className="quick-action-icon violet"><ShieldCheck size={18} /></span>
+                          <span>
+                            <strong>Check data quality</strong>
+                            <small>Review missing and duplicate values</small>
+                          </span>
+                          <ArrowUpRight size={16} />
+                        </button>
+                        <button type="button" className="quick-action-card" onClick={() => setActiveTab('stats')}>
+                          <span className="quick-action-icon green"><BarChart2 size={18} /></span>
+                          <span>
+                            <strong>Run statistics</strong>
+                            <small>View distributions and correlations</small>
+                          </span>
+                          <ArrowUpRight size={16} />
+                        </button>
+                        <button type="button" className="quick-action-card" onClick={() => setActiveTab('ask')}>
+                          <span className="quick-action-icon amber"><WandSparkles size={18} /></span>
+                          <span>
+                            <strong>Ask Data</strong>
+                            <small>Use the safe question engine</small>
+                          </span>
+                          <ArrowUpRight size={16} />
+                        </button>
+                      </div>
+                    </section>
+
+                    <div className="overview-content-grid">
+                      <section className="recent-dataset-card" aria-labelledby="recent-dataset-title">
+                        <div className="section-heading">
+                          <div>
+                            <h3 id="recent-dataset-title">Recent dataset</h3>
+                            <p>The dataset currently active in this workspace.</p>
+                          </div>
                         </div>
-                        <p style={{ fontSize: '0.825rem' }}>Inferred data types, missing value percentages & sample values.</p>
-                      </div>
-                      <div className="column-card" onClick={() => setActiveTab('preview')} style={{ cursor: 'pointer' }}>
-                        <div style={{ fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>Data Preview</span> <ArrowUpRight size={16} />
+                        <button type="button" className="dataset-list-row" onClick={() => setActiveTab('preview')}>
+                          <span className="dataset-file-icon"><Database size={18} /></span>
+                          <span className="dataset-file-details">
+                            <strong>{dataset.filename}</strong>
+                            <small>
+                              {dataset.row_count.toLocaleString()} rows · {dataset.column_count} columns
+                            </small>
+                          </span>
+                          <ArrowUpRight size={16} />
+                        </button>
+                      </section>
+
+                      <section className="recommended-card" aria-labelledby="recommended-title">
+                        <div className="section-heading">
+                          <div>
+                            <h3 id="recommended-title">Recommended next step</h3>
+                            <p>Based on the actual data quality report.</p>
+                          </div>
                         </div>
-                        <p style={{ fontSize: '0.825rem' }}>Paginated data table with null highlighting and sorting.</p>
-                      </div>
-                      <div className="column-card" onClick={() => setActiveTab('quality')} style={{ cursor: 'pointer' }}>
-                        <div style={{ fontWeight: 700, color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>Data Quality</span> <ArrowUpRight size={16} />
-                        </div>
-                        <p style={{ fontSize: '0.825rem' }}>Diagnose duplicate rows, missingness and completeness score.</p>
-                      </div>
+                        {dataset.has_nulls || dataset.has_duplicates ? (
+                          <button type="button" className="recommendation-row" onClick={() => setActiveTab('export')}>
+                            <span className="quick-action-icon amber"><Eraser size={18} /></span>
+                            <span>
+                              <strong>Clean dataset</strong>
+                              <small>
+                                {dataset.has_nulls ? 'Handle missing values' : 'Remove duplicate records'}
+                              </small>
+                            </span>
+                            <ArrowUpRight size={16} />
+                          </button>
+                        ) : (
+                          <button type="button" className="recommendation-row" onClick={() => setActiveTab('bi-dashboard')}>
+                            <span className="quick-action-icon green"><SlidersHorizontal size={18} /></span>
+                            <span>
+                              <strong>Build a BI dashboard</strong>
+                              <small>Explore KPIs and interactive visualizations</small>
+                            </span>
+                            <ArrowUpRight size={16} />
+                          </button>
+                        )}
+
+                        {activeTab === 'projects' && (
+                          <ProjectsWorkspace
+                            datasetId={dataset?.dataset_id}
+                            datasetName={dataset?.filename}
+                          />
+                        )}
+                      </section>
                     </div>
                   </div>
                 )}
@@ -304,6 +512,102 @@ export default function App() {
                     : qFetch.error
                     ? <ErrorMsg msg={qFetch.error} />
                     : <QualityReport quality={qFetch.data} />
+                )}
+
+                {activeTab === 'eda' && (
+                  edaFetch.loading
+                    ? <LoadingSpinner label="Running automated exploratory analysis..." />
+                    : edaFetch.error
+                    ? <ErrorMsg msg={edaFetch.error} />
+                    : edaFetch.data && (
+                        <div className="eda-dashboard">
+                          <div className="eda-heading">
+                            <div>
+                              <p className="overview-eyebrow">Automated analysis</p>
+                              <h2>Dataset findings</h2>
+                            </div>
+                            <span className="dataset-status ready">
+                              <CircleCheck size={14} />
+                              Calculated from data
+                            </span>
+                          </div>
+
+                          <div className="kpi-grid">
+                            <div className="kpi-card">
+                              <div className="kpi-title">Rows</div>
+                              <div className="kpi-value">{edaFetch.data.row_count.toLocaleString()}</div>
+                            </div>
+                            <div className="kpi-card">
+                              <div className="kpi-title">Columns</div>
+                              <div className="kpi-value">{edaFetch.data.column_count}</div>
+                            </div>
+                            <div className="kpi-card">
+                              <div className="kpi-title">Missing values</div>
+                              <div className="kpi-value">{edaFetch.data.missing_values}</div>
+                            </div>
+                            <div className="kpi-card">
+                              <div className="kpi-title">Duplicate rows</div>
+                              <div className="kpi-value">{edaFetch.data.duplicate_rows}</div>
+                            </div>
+                          </div>
+
+                          <div className="eda-content-grid">
+                            <section className="eda-panel">
+                              <h3>Key findings</h3>
+                              <div className="finding-list">
+                                {edaFetch.data.findings.map((finding, index) => (
+                                  <div key={index} className="finding-row">
+                                    <CheckCircle2 size={16} />
+                                    <span>{finding}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+
+                            <section className="eda-panel">
+                              <h3>Recommended visualizations</h3>
+                              <div className="finding-list">
+                                {edaFetch.data.recommended_visualizations.map((item, index) => (
+                                  <div key={index} className="finding-row">
+                                    <BarChart2 size={16} />
+                                    <span>{item}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          </div>
+
+                          {edaFetch.data.outliers.length > 0 && (
+                            <section className="eda-panel">
+                              <h3>IQR outlier analysis</h3>
+                              <div className="table-wrapper">
+                                <table className="data-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Column</th>
+                                      <th>Outliers</th>
+                                      <th>Percentage</th>
+                                      <th>Lower bound</th>
+                                      <th>Upper bound</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {edaFetch.data.outliers.map(item => (
+                                      <tr key={item.column}>
+                                        <td><strong>{item.column}</strong></td>
+                                        <td>{item.count}</td>
+                                        <td>{item.percentage}%</td>
+                                        <td>{item.lower_bound ?? '—'}</td>
+                                        <td>{item.upper_bound ?? '—'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </section>
+                          )}
+                        </div>
+                      )
                 )}
 
                 {activeTab === 'stats' && (
@@ -380,6 +684,18 @@ export default function App() {
 
                 {activeTab === 'ask' && (
                   <QuestionEngine datasetId={dataset.dataset_id} columns={dataset.columns} />
+                )}
+
+                {activeTab === 'visualizations' && (
+                  <VisualizationStudio datasetId={dataset.dataset_id} columns={dataset.columns} />
+                )}
+
+                {activeTab === 'ml' && (
+                  <MachineLearningLab datasetId={dataset.dataset_id} columns={dataset.columns} />
+                )}
+
+                {activeTab === 'reports' && (
+                  <ReportStudio datasetId={dataset.dataset_id} datasetName={dataset.filename} />
                 )}
 
                 {activeTab === 'export' && (

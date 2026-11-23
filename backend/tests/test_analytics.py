@@ -107,3 +107,16 @@ def test_correlation_diagonal_is_one():
     d = client.get(f"/api/analytics/{did}/correlation").json()
     for i in range(len(d["columns"])):
         assert d["matrix"][i][i] == 1.0
+
+
+def test_automated_eda_summary():
+    did = _upload()
+    response = client.get(f"/api/analytics/{did}/eda")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["row_count"] == 10
+    assert data["column_count"] == 7
+    assert isinstance(data["findings"], list)
+    assert len(data["findings"]) >= 2
+    assert isinstance(data["recommended_visualizations"], list)
+    assert all(outlier["column"] in data["numeric_columns"] for outlier in data["outliers"])

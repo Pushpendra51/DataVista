@@ -46,6 +46,25 @@ async def upload_dataset(file: UploadFile = File(...)) -> DatasetPreviewResponse
             detail=f"An unexpected error occurred while processing the uploaded file: {str(e)}"
         )
 
+@router.delete(
+    "/dataset/{dataset_id}",
+    summary="Delete a Dataset Session",
+    description="Delete a temporary uploaded or cleaned dataset session.",
+    tags=["Dataset"]
+)
+def delete_dataset(dataset_id: str):
+    if not validate_dataset_id(dataset_id):
+        raise HTTPException(status_code=400, detail="Invalid dataset ID format.")
+
+    from app.services.dataset_service import get_dataset_path
+
+    file_path = get_dataset_path(dataset_id)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Dataset session '{dataset_id}' not found.")
+
+    file_path.unlink()
+    return {"dataset_id": dataset_id, "deleted": True}
+
 @router.get(
     "/dataset/{dataset_id}/preview",
     summary="Fetch Dataset Preview Rows",
@@ -55,7 +74,10 @@ async def upload_dataset(file: UploadFile = File(...)) -> DatasetPreviewResponse
 def get_dataset_preview(
     dataset_id: str,
     offset: int = Query(0, ge=0, description="Row offset to start preview"),
-    limit: int = Query(10, ge=1, le=100, description="Number of rows to return")
+    limit: int = Query(10, ge=1, le=100, description="Number of rows to return"),
+    search: str = Query("", max_length=200, description="Search across visible dataset values"),
+    sort_by: str = Query("", description="Column name used for sorting"),
+    sort_direction: str = Query("asc", pattern="^(asc|desc)$", description="Sort direction")
 ):
     if not validate_dataset_id(dataset_id):
         raise HTTPException(
@@ -64,8 +86,28 @@ def get_dataset_preview(
         )
     try:
         df = load_dataset(dataset_id)
-        total_rows, total_cols = df.shape
-        sliced_df = df.iloc[offset: offset + limit]
+        filtered_df = df
+        if search.strip():
+            query = search.strip().lower()
+            filtered_df = df[
+                df.apply(
+                    lambda column: column.astype("string").str.lower().str.contains(query, regex=False, na=False)
+                ).any(axis=1)
+            ]
+
+        if sort_by:
+            if sort_by not in df.columns:
+                raise HTTPException(status_code=400, detail=f"Column '{sort_by}' was not found.")
+            filtered_df = filtered_df.sort_values(
+                by=sort_by,
+                ascending=sort_direction == "asc",
+                kind="stable",
+                na_position="last",
+            )
+
+        total_rows = len(filtered_df)
+        total_cols = len(filtered_df.columns)
+        sliced_df = filtered_df.iloc[offset: offset + limit]
 
         return {
             "dataset_id": dataset_id,

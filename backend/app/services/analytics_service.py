@@ -11,6 +11,7 @@ from app.schemas.analytics import (
     DataQualityReport, NullSummary,
     DescriptiveStatsResponse, ColumnStats, ColumnFrequency, CategoryFrequency,
     CorrelationResponse, CorrelationEntry,
+    EDASummary, OutlierSummary,
 )
 
 
@@ -165,3 +166,87 @@ def get_correlation_matrix(df: pd.DataFrame) -> CorrelationResponse:
             )
 
     return CorrelationResponse(columns=num_cols, matrix=matrix, pairs=pairs)
+
+
+def get_eda_summary(df: pd.DataFrame) -> EDASummary:
+    """Build an actual, bounded exploratory-analysis summary from the dataset."""
+    stats = get_descriptive_stats(df, top_n=8)
+    correlation = get_correlation_matrix(df)
+    numeric_cols = _numeric_columns(df)
+    categorical_cols = _categorical_columns(df)
+
+    outliers: List[OutlierSummary] = []
+    findings: List[str] = []
+    for col in numeric_cols:
+        s = df[col].dropna()
+        if s.empty:
+            continue
+        q1 = s.quantile(0.25)
+        q3 = s.quantile(0.75)
+        iqr = q3 - q1
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+        count = int(((s < lower) | (s > upper)).sum())
+        outlier_pct = round(count / len(s) * 100, 2) if len(s) else 0.0
+        outliers.append(
+            OutlierSummary(
+                column=col,
+                count=count,
+                percentage=outlier_pct,
+                lower_bound=_safe_float(lower),
+                upper_bound=_safe_float(upper),
+            )
+        )
+
+    missing = int(df.isna().sum().sum())
+    duplicates = int(df.duplicated().sum())
+    if missing:
+        findings.append(f"{missing} missing data value(s) were detected.")
+    else:
+        findings.append("No missing values were detected.")
+    if duplicates:
+        findings.append(f"{duplicates} duplicate row(s) were detected.")
+    else:
+        findings.append("No duplicate rows were detected.")
+    if outliers:
+        strongest = max(outliers, key=lambda item: item.count)
+        if strongest.count:
+            findings.append(
+                f"{strongest.column} has the highest IQR-outlier count ({strongest.count})."
+            )
+    if correlation.pairs:
+        strongest_pair = max(
+            (pair for pair in correlation.pairs if pair.correlation is not None),
+            key=lambda pair: abs(pair.correlation),
+            default=None,
+        )
+        if strongest_pair:
+            findings.append(
+                f"{strongest_pair.col_a} and {strongest_pair.col_b} have the strongest "
+                f"Pearson correlation ({strongest_pair.correlation:.2f})."
+            )
+
+    recommendations: List[str] = []
+    if numeric_cols:
+        recommendations.append(f"Histogram — distribution of {numeric_cols[0]}")
+    if len(numeric_cols) >= 2:
+        recommendations.append(f"Scatter plot — {numeric_cols[0]} by {numeric_cols[1]}")
+    if categorical_cols:
+        recommendations.append(f"Bar chart — frequency of {categorical_cols[0]}")
+    if len(correlation.pairs) >= 1:
+        recommendations.append("Correlation heatmap — relationships between numeric columns")
+
+    return EDASummary(
+        row_count=len(df),
+        column_count=len(df.columns),
+        numeric_columns=numeric_cols,
+        categorical_columns=categorical_cols,
+        missing_values=missing,
+        duplicate_rows=duplicates,
+        numeric_summary=stats.numeric_stats,
+        categorical_summary=stats.categorical_frequencies,
+        correlation_pairs=correlation.pairs,
+        outliers=outliers,
+        findings=findings,
+        recommended_visualizations=recommendations,
+    )

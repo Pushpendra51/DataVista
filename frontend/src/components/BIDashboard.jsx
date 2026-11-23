@@ -345,11 +345,7 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* ── BI Header Toolbar ── */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center',
-        background: 'rgba(30, 41, 59, 0.6)', border: '1px solid var(--border-light)',
-        borderRadius: '12px', padding: '1rem 1.25rem', gap: '1rem'
-      }}>
+      <div className="bi-dashboard-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
             background: 'linear-gradient(135deg, #f59e0b, #d97706)', padding: '0.5rem',
@@ -371,7 +367,7 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
         {/* Control Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           {/* Preset buttons */}
-          <div style={{ display: 'flex', background: 'var(--bg-dark)', borderRadius: '8px', padding: 3, border: '1px solid var(--border-light)' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-card-subtle)', borderRadius: '8px', padding: 3, border: '1px solid var(--border)' }}>
             <button
               onClick={() => applyPreset('executive')}
               style={{
@@ -425,15 +421,11 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
       </div>
 
       {/* ── KPI Callout Scorecards Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div className="bi-kpi-grid">
         {kpiMetrics.map((kpi, idx) => {
           const IconComp = kpi.icon || Activity
           return (
-            <div key={idx} className="column-card" style={{
-              background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
-              border: '1px solid rgba(255,255,255,0.08)', padding: '1.1rem 1.25rem', borderRadius: '12px',
-              position: 'relative', overflow: 'hidden'
-            }}>
+            <div key={idx} className="bi-kpi-card" style={{ position: 'relative', overflow: 'hidden' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '0.775rem', fontWeight: 600, color: 'var(--text-muted)' }}>{kpi.label}</span>
                 <span style={{
@@ -455,14 +447,11 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
       </div>
 
       {/* ── Main Dashboard Split: Left Slicers Sidebar + Right Visual Canvas ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="bi-dashboard-layout">
         
         {/* ── Left Power BI Slicers Sidebar ── */}
-        <aside style={{
-          background: 'rgba(30, 41, 59, 0.5)', border: '1px solid var(--border-light)',
-          borderRadius: '12px', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
+        <aside className="bi-slicer-panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Filter size={15} color="var(--primary)" />
               <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>Slicers &amp; Filters</span>
@@ -498,7 +487,7 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
 
                 <div style={{
                   display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '140px',
-                  overflowY: 'auto', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '6px', padding: '0.4rem', border: '1px solid var(--border-light)'
+                  overflowY: 'auto', background: 'var(--bg-card-subtle)', borderRadius: '6px', padding: '0.4rem', border: '1px solid var(--border)'
                 }}>
                   {seriesValues.map(val => {
                     const isChecked = currentSelected.has(val)
@@ -507,9 +496,9 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
                         key={val}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.775rem',
-                          color: isChecked ? '#fff' : 'var(--text-muted)', cursor: 'pointer',
+                          color: isChecked ? 'var(--primary)' : 'var(--text-main)', cursor: 'pointer',
                           padding: '0.2rem 0.3rem', borderRadius: '4px',
-                          background: isChecked ? 'rgba(59, 130, 246, 0.2)' : 'transparent'
+                          background: isChecked ? 'var(--primary-soft)' : 'transparent'
                         }}
                       >
                         <input
@@ -546,7 +535,7 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
                   <div key={w.id} className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative' }}>
                     
                     {/* Widget Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                       <div>
                         <h4 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           {w.title}
@@ -633,7 +622,7 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
       {/* ── Add / Edit Widget Modal Drawer ── */}
       {isAddingWidget && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000,
+          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.38)', zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '1.75rem' }}>
@@ -734,7 +723,7 @@ export default function BIDashboard({ datasetId, columns, totalRows }) {
       {/* ── Focus / Expand View Modal ── */}
       {focusedWidget && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1100,
+          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.38)', zIndex: 1100,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem'
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '800px', padding: '2rem' }}>
